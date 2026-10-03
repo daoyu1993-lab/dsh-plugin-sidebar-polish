@@ -37,7 +37,8 @@
 | 收起后的 56px 轨道展开按钮 | 有 | **保留** |
 | 「展开其余 N 个会话」按钮 | 28px 高 / 12px 字 / hover 无底色 / 文案「展开其余 N 个会话」 | **32px 高 / 14px 字 / hover 同款胶囊 / 文案「更多会话」** |
 
-预览页：[`preview/compare.html`](preview/compare.html)（可直接在浏览器打开）；
+预览页 `preview/compare.html` 由 `tools/build-preview.mjs` 在本地生成（**不随仓库分发**：页面内联了
+DSH 官方样式表，生成方式见「自检」一节的第 0 步），生成后可直接在浏览器打开；
 细粒度对齐见 [`preview/align.png`](preview/align.png)，新会话行见 [`preview/new-session.png`](preview/new-session.png)。
 图中侧边栏外壳的 CSS 与 DOM 结构取自真实包，会话条目为示意内容。
 
@@ -521,7 +522,8 @@ div:has(> [data-slot="sidebar"]) [data-slot="sidebar"] > div > div:has(> div > [
   <img src="preview/idle-dot.png" width="720" alt="无状态会话行：官方留空 vs 本插件补同尺寸灰点">
 </p>
 
-  这张图用的是**真实产物 CSS + 真实的 `StateDot` 标记**（`preview/idle-dot.html`，亮色 3× 放大）：
+  这张图用的是**真实产物 CSS + 真实的 `StateDot` 标记**（预览页 `preview/idle-dot.html`，亮色 3× 放大，
+  本地由 `tools/build-preview.mjs` 生成）：
   左边官方只有「正在运行 / 等待审批 / 刚完成」三行有圆点，三行无状态的会话是空的；
   右边本插件把三个空座位补成灰点。橙点、绿点、灰点直径完全相同，圆心同在槽位中心线上
   （粉色虚线；左右两侧的 x 差 4px 是规则 6 把整体内边距从 12px 收到 8px 的结果）。
@@ -594,7 +596,7 @@ div:has(> [data-slot="sidebar"]) [data-slot="sidebar"] > div > div:has(> div > [
   <img src="preview/fill-light.png" width="720" alt="侧栏底色 vs 对话区底色（亮色）">
 </p>
 
-> 亮色预览页 [`preview/fill-light.html`](preview/fill-light.html) 的 `body` 铺的就是上面那个窗口材质
+> 亮色预览页 `preview/fill-light.html`（本地由 `tools/build-preview.mjs` 生成）的 `body` 铺的就是上面那个窗口材质
 > （实测色 `#d7d6d5`），所以页面里的合成结果与真实窗口一致：左格官方 = 渐变 + 40% 基色，
 > 右格 = 90% `#ffffff`、无渐变；两格右侧的对话区都是不透明的 `#ffffff`。
 
@@ -693,12 +695,23 @@ web/darwin × 展开/收起 × 有/无全局面板。
 cd <本仓库根目录>          # tools/ 与 preview/ 所在处
 NODE="$(command -v node || echo '/Applications/DeepSeek Harness.app/Contents/Resources/runtime/primary-runtime/dependencies/node/bin/node')"
 
-# 0) 前置：verify-idle-dot / verify-new-session / build-preview 要读官方产物里
-#    StateDot 与 ShortcutKeys 的**真实样式表**，先从本机 DSH 解包到 ./core
-#    （该目录已在 .gitignore 里，不会随仓库分发；其余步骤不需要它）
-"$NODE" tools/asar-extract.cjs ./core /dsh/node_modules/@deepseek-ai/dsh-client-ui-primitives/
+# 0) 前置：本仓库只分发**截图**，不含任何官方产物片段（core/、preview/*.css、preview/*.html
+#    都在 .gitignore 里）。真引擎断言要的夹具全部从本机 DSH 现场抽出来：
+"$NODE" tools/asar-extract.cjs ./core \
+  /dsh/node_modules/@deepseek-ai/dsh-client-ui-primitives/ \
+  /dsh/node_modules/@deepseek-ai/dsh-client-ui-theme/ \
+  /dsh/node_modules/@deepseek-ai/dsh-client-ui-layout/ \
+  /dsh/node_modules/@deepseek-ai/dsh-client-ui-sidebar/ \
+  /dsh/node_modules/@deepseek-ai/dsh-client-ui-workspace/
+T=core/dsh/node_modules/@deepseek-ai
+"$NODE" tools/extract-css.mjs $T/dsh-client-ui-theme/lib/client.js     preview/theme.css
+"$NODE" tools/extract-css.mjs $T/dsh-client-ui-layout/lib/client.js    preview/layout.css
+"$NODE" tools/extract-css.mjs $T/dsh-client-ui-sidebar/lib/client.js   preview/shell.css
+"$NODE" tools/extract-css.mjs $T/dsh-client-ui-workspace/lib/client.js preview/workspace.css --min 50
+"$NODE" tools/extract-css.mjs $T/dsh-client-ui-theme/lib/client.js     preview/palette.css --only design_platform_css_default
+#    这五个文件与上游夹具逐字节一致；夹具齐了之后 build-preview.mjs 会生成 preview/*.html。
 
-# 1) 离线单测：注册、注入、选择器、旋钮、卸载与热重载不堆叠
+# 1) 离线单测：注册、注入、选择器、旋钮、卸载与热重载不堆叠（唯一不需要夹具的一步）
 "$NODE" tools/test-plugin.mjs
 
 # 2) 真引擎级联校验（headless Chrome）：两态各自的基色/不透明度/渐变是否被覆盖
