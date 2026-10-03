@@ -1,0 +1,29 @@
+{
+  "name": "dsh-plugin-sidebar-polish",
+  "version": "0.5.0",
+  "private": true,
+  "description": "Polish the DSH left sidebar: drop the brand row, redraw New Session as a panel row, unify row heights and indents, tune the fill for dark and light, pin the collapse toggle, add a settings entry, and mark idle sessions.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "license": "MIT"
+}
